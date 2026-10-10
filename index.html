@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Crystal Structure Short Paper Generator</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --panel: #ffffff;
+      --text: #182025;
+      --muted: #65717a;
+      --line: #d9e0e5;
+      --accent: #176a73;
+      --accent-dark: #10525a;
+      --warn: #9a5a00;
+      --bad: #9a1f1f;
+      --ok: #207044;
+      --shadow: 0 10px 30px rgba(24, 32, 37, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 26px 28px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 980px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .left, .right { min-width: 0; }
+
+    .section-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .section-body { padding: 16px 18px 18px; }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px dashed #aab6be;
+      border-radius: 6px;
+      background: #fbfcfd;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 9px 13px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #e7eef1;
+      color: var(--text);
+    }
+
+    button:hover { background: var(--accent-dark); }
+    button.secondary:hover { background: #d7e2e7; }
+
+    .note {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: #fbfcfd;
+      font-size: 12px;
+    }
+
+    .status strong { display: block; font-size: 13px; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: #edf2f4;
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .preview {
+      padding: 20px 24px;
+      min-height: 620px;
+      overflow: auto;
+      background: #fff;
+      border-top: 1px solid var(--line);
+    }
+
+    .paper {
+      max-width: 900px;
+      margin: 0 auto;
+      font-family: Georgia, "Times New Roman", serif;
+      color: #111;
+    }
+
+    .paper h3 {
+      font-size: 20px;
+      line-height: 1.25;
+      margin: 0 0 12px;
+    }
+
+    .paper h4 {
+      font-size: 15px;
+      margin: 18px 0 8px;
+    }
+
+    .paper p { margin: 8px 0; }
+    .paper table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 13px;
+    }
+    .paper th, .paper td {
+      border-top: 1px solid #222;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .paper tr:last-child td { border-bottom: 1px solid #222; }
+
+    .hidden { display: none; }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      font-family: Consolas, "Liberation Mono", monospace;
+    }
+
+    @media (max-width: 920px) {
+      main { grid-template-columns: 1fr; }
+      .status-grid { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>New Crystal Structure Short Paper Generator</h1>
+    <p class="subtitle">离线单机版。基于真实 CIF、checkCIF 和合成路线生成 New Crystal Structures 风格短文草稿；不联网，不自动编造 CCDC、键长角或结构解释。</p>
+  </header>
+
+  <main>
+    <section class="left">
+      <div class="section-head">
+        <h2>输入</h2>
+      </div>
+      <div class="section-body">
+        <label for="cifFile">CIF 文件</label>
+        <input id="cifFile" type="file" accept=".cif,.txt">
+
+        <label for="checkFile">checkCIF 报告，可选</label>
+        <input id="checkFile" type="file" accept=".txt,.html,.pdf">
+
+        <div class="row">
+          <div>
+            <label for="ccdc">CCDC 号</label>
+            <input id="ccdc" type="text" placeholder="如 2473249">
+          </div>
+          <div>
+            <label for="temperature">温度</label>
+            <input id="temperature" type="text" placeholder="如 150 K">
+          </div>
+        </div>
+
+        <label for="title">题名</label>
+        <input id="title" type="text" placeholder="The crystal structure of ...">
+
+        <label for="authors">作者</label>
+        <input id="authors" type="text" placeholder="Qian Li and Chen Li*">
+
+        <label for="affiliation">单位与通讯作者信息</label>
+        <textarea id="affiliation" placeholder="Corresponding author: ...&#10;Other authors: ..."></textarea>
+
+        <label for="synthesis">合成路线 / Source of materials</label>
+        <textarea id="synthesis" placeholder="写入真实合成路线、投料量、溶剂、温度、时间、收率和晶体获得方式。"></textarea>
+
+        <label for="commentSeed">结构特征补充，可选</label>
+        <textarea id="commentSeed" placeholder="例如：非对称单元组成、氢键、配位环境、二面角、π-π 堆积、孔道/非孔结构。没有把握就留空，系统只给保守骨架。"></textarea>
+
+        <label for="references">参考文献，可选</label>
+        <textarea id="references" placeholder="每行一条真实参考文献。软件和方法文献可先保留默认。"></textarea>
+
+        <label for="journal">输出风格</label>
+        <select id="journal">
+          <option value="ncrs">Z. Kristallogr. - New Crystal Structures 短文</option>
+          <option value="plain">通用晶体结构短文</option>
+        </select>
+
+        <div class="buttons">
+          <button id="generateBtn">生成草稿</button>
+          <button id="clearBtn" class="secondary">清空</button>
+        </div>
+        <p class="note">严肃提醒：CIF 与 CCDC 号必须真实。投稿前应通过 Olex2/Mercury/checkCIF 人工核对。</p>
+      </div>
+    </section>
+
+    <section class="right">
+      <div class="section-head">
+        <h2>输出</h2>
+        <div class="tabs">
+          <button class="tab active" data-tab="preview">预览</button>
+          <button class="tab" data-tab="markdown">Markdown</button>
+          <button class="tab" data-tab="checks">检查</button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="status-grid">
+          <div class="status"><strong id="cifStatus" class="warn">未读取 CIF</strong><span>CIF 驱动核心数据</span></div>
+          <div class="status"><strong id="ccdcStatus" class="warn">缺 CCDC</strong><span>投稿必要字段</span></div>
+          <div class="status"><strong id="alertStatus" class="warn">未读取 checkCIF</strong><span>风险提示</span></div>
+        </div>
+        <div class="buttons">
+          <button id="downloadDocBtn">下载 Word 兼容文档</button>
+          <button id="downloadMdBtn" class="secondary">下载 Markdown</button>
+          <button id="copyBtn" class="secondary">复制正文</button>
+        </div>
+      </div>
+      <div id="previewPanel" class="preview">
+        <div id="paperPreview" class="paper"></div>
+      </div>
+      <div id="markdownPanel" class="preview hidden"><pre id="markdownPreview"></pre></div>
+      <div id="checksPanel" class="preview hidden"><pre id="checksPreview"></pre></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      cifText: "",
+      checkText: "",
+      data: {},
+      markdown: "",
+      checks: []
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    function cleanValue(value) {
+      if (!value) return "";
+      return String(value)
+        .replace(/^['"]|['"]$/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function parseCif(text) {
+      const data = {};
+      const lines = text.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i];
+        const line = raw.trim();
+        if (!line || line.startsWith("#") || line === "loop_") continue;
+        if (line.startsWith("_")) {
+          const match = line.match(/^(_[A-Za-z0-9_.-]+)\s+(.*)$/);
+          if (match) {
+            data[match[1]] = cleanValue(match[2]);
+          } else if (i + 1 < lines.length) {
+            data[line] = cleanValue(lines[i + 1]);
+            i++;
+          }
+        }
+      }
+      return data;
+    }
+
+    function pick(data, keys) {
+      for (const key of keys) {
+        if (data[key]) return cleanValue(data[key]);
+      }
+      return "";
+    }
+
+    function formatCell(value, unit) {
+      if (!value) return "[请由 CIF 补齐]";
+      return unit ? `${value} ${unit}` : value;
+    }
+
+    function formulaPlain(data) {
+      return pick(data, [
+        "_chemical_formula_sum",
+        "_chemical_formula_moiety",
+        "_chemical_formula_structural"
+      ]);
+    }
+
+    function buildExtracted() {
+      const d = state.data;
+      const title = el("title").value.trim() || `The crystal structure of [compound name], ${formulaPlain(d) || "[formula]"}`;
+      const formula = formulaPlain(d);
+      const crystalSystem = pick(d, ["_space_group_crystal_system", "_symmetry_cell_setting"]);
+      const spaceGroup = pick(d, ["_space_group_name_H-M_alt", "_symmetry_space_group_name_H-M"]);
+      const hall = pick(d, ["_space_group_name_Hall", "_symmetry_space_group_name_Hall"]);
+      return {
+        title,
+        formula,
+        crystalSystem,
+        spaceGroup,
+        hall,
+        a: pick(d, ["_cell_length_a"]),
+        b: pick(d, ["_cell_length_b"]),
+        c: pick(d, ["_cell_length_c"]),
+        alpha: pick(d, ["_cell_angle_alpha"]),
+        beta: pick(d, ["_cell_angle_beta"]),
+        gamma: pick(d, ["_cell_angle_gamma"]),
+        volume: pick(d, ["_cell_volume"]),
+        z: pick(d, ["_cell_formula_units_Z"]),
+        rgt: pick(d, ["_refine_ls_R_factor_gt", "_refine_ls_R_factor_obs"]),
+        wr: pick(d, ["_refine_ls_wR_factor_ref", "_refine_ls_wR_factor_gt", "_refine_ls_wR_factor_obs"]),
+        temp: el("temperature").value.trim() || pick(d, ["_diffrn_ambient_temperature", "_cell_measurement_temperature"]),
+        wavelength: pick(d, ["_diffrn_radiation_wavelength"]),
+        radiation: pick(d, ["_diffrn_radiation_type"]),
+        mu: pick(d, ["_exptl_absorpt_coefficient_mu"]),
+        thetaMax: pick(d, ["_diffrn_reflns_theta_max", "_cell_measurement_theta_max"]),
+        reflectionsMeasured: pick(d, ["_diffrn_reflns_number"]),
+        reflectionsUnique: pick(d, ["_reflns_number_total"]),
+        reflectionsGt: pick(d, ["_reflns_number_gt"]),
+        rint: pick(d, ["_diffrn_reflns_av_R_equivalents", "_diffrn_reflns_av_unetI/netI"]),
+        params: pick(d, ["_refine_ls_number_parameters"]),
+        crystalSize: [
+          pick(d, ["_exptl_crystal_size_max"]),
+          pick(d, ["_exptl_crystal_size_mid"]),
+          pick(d, ["_exptl_crystal_size_min"])
+        ].filter(Boolean).join(" x "),
+        crystalColor: pick(d, ["_exptl_crystal_colour"]),
+        crystalShape: pick(d, ["_exptl_crystal_description"]),
+        diffractometer: pick(d, ["_diffrn_measurement_device_type", "_diffrn_measurement_device"]),
+        ccdc: el("ccdc").value.trim()
+      };
+    }
+
+    function parseCheckCif(text) {
+      if (!text) return { a: 0, b: 0, c: 0, g: 0, found: false, snippets: [] };
+      const counts = { a: 0, b: 0, c: 0, g: 0, found: true, snippets: [] };
+      const patterns = [
+        [/Alert level A/gi, "a"],
+        [/Alert level B/gi, "b"],
+        [/Alert level C/gi, "c"],
+        [/Alert level G/gi, "g"],
+        [/PLAT\d+_ALERT_\d+_A/gi, "a"],
+        [/PLAT\d+_ALERT_\d+_B/gi, "b"],
+        [/PLAT\d+_ALERT_\d+_C/gi, "c"],
+        [/PLAT\d+_ALERT_\d+_G/gi, "g"]
+      ];
+      for (const [re, key] of patterns) {
+        const matches = text.match(re);
+        if (matches) counts[key] += matches.length;
+      }
+      const alertLines = text.split(/\r?\n/).filter((line) => /ALERT|Alert level/i.test(line)).slice(0, 20);
+      counts.snippets = alertLines.map((line) => line.trim()).filter(Boolean);
+      return counts;
+    }
+
+    function tableRows(x) {
+      return [
+        ["Crystal", [x.crystalColor, x.crystalShape].filter(Boolean).join(", ") || "[block/needle/plate/color]"],
+        ["Size", x.crystalSize ? `${x.crystalSize} mm` : "[请由 CIF 或实验记录补齐]"],
+        ["Wavelength", x.wavelength ? `${x.radiation || "radiation"} (${x.wavelength} Å)` : "[请补齐]"],
+        ["μ", x.mu ? `${x.mu} mm-1` : "[请补齐]"],
+        ["Diffractometer, scan mode", x.diffractometer || "[请补齐仪器与扫描方式]"],
+        ["θmax, completeness", x.thetaMax ? `${x.thetaMax}°, [completeness %]` : "[请补齐]"],
+        ["N(hkl)measured, N(hkl)unique, Rint", [x.reflectionsMeasured, x.reflectionsUnique, x.rint].filter(Boolean).join(", ") || "[请补齐]"],
+        ["Criterion for Iobs, N(hkl)gt", x.reflectionsGt ? `Iobs > 2 sigma(Iobs), ${x.reflectionsGt}` : "Iobs > 2 sigma(Iobs), [请补齐]"],
+        ["N(param)refined", x.params || "[请补齐]"],
+        ["Programs", "CrysAlisPRO/SHELX/Olex2 或实际使用软件，请按真实情况修改"]
+      ];
+    }
+
+    function buildMarkdown() {
+      const x = buildExtracted();
+      const authors = el("authors").value.trim() || "[Authors]";
+      const affiliation = el("affiliation").value.trim() || "[Corresponding author and affiliation]";
+      const synthesis = el("synthesis").value.trim() || "[Insert real synthesis route, reagent amounts, solvent, temperature, reaction time, purification, yield, and crystallization conditions.]";
+      const commentSeed = el("commentSeed").value.trim();
+      const refs = el("references").value.trim();
+      const cell = `${x.crystalSystem || "[crystal system]"}, ${x.spaceGroup || "[space group]"}${x.hall ? ` (${x.hall})` : ""}, a = ${formatCell(x.a, "Å")}, b = ${formatCell(x.b, "Å")}, c = ${formatCell(x.c, "Å")}, alpha = ${formatCell(x.alpha, "°")}, beta = ${formatCell(x.beta, "°")}, gamma = ${formatCell(x.gamma, "°")}, V = ${formatCell(x.volume, "Å3")}, Z = ${x.z || "[Z]"}, Rgt(F) = ${x.rgt || "[Rgt]"}, wRref(F2) = ${x.wr || "[wRref]"}, T = ${x.temp || "[T]"}.`;
+
+      const rows = tableRows(x).map((row) => `| ${row[0]} | ${row[1]} |`).join("\n");
+      const comment = commentSeed
+        ? `${commentSeed}\n\nThe title compound crystallizes in the ${x.crystalSystem || "[crystal system]"} system with the ${x.spaceGroup || "[space group]"} space group. Bond lengths and angles should be checked against the CIF validation output and compared with closely related reported structures.`
+        : `The title compound crystallizes in the ${x.crystalSystem || "[crystal system]"} system with the ${x.spaceGroup || "[space group]"} space group. The asymmetric unit, hydrogen-bonding pattern, coordination environment, packing features, and relevant torsion angles must be described after inspection in Olex2 or Mercury. Do not retain this placeholder paragraph for submission.`;
+
+      const defaultRefs = [
+        "Sheldrick, G. M. Crystal structure refinement with SHELXL. Acta Crystallographica Section C, 2015, 71, 3-8.",
+        "Dolomanov, O. V.; Bourhis, L. J.; Gildea, R. J.; Howard, J. A. K.; Puschmann, H. OLEX2: a complete structure solution, refinement and analysis program. Journal of Applied Crystallography, 2009, 42, 339-341."
+      ].join("\n");
+
+      return `# ${authors}\n\n## ${x.title}\n\n${affiliation}\n\nDOI: [to be assigned]\n\nReceived: [date]; accepted: [date]; published online: [date]\n\n## Abstract\n\n${x.formula || "[formula]"}, ${cell}\nCCDC no.: ${x.ccdc || "[CCDC number required]"}\n\nThe molecular structure is shown in the figure. Table 1 contains the crystallographic data. The atomic coordinates and displacement parameters should be supplied in the CIF file attached to the article.\n\n## Table 1: Data collection and handling\n\n| Item | Value |\n|---|---|\n${rows}\n\n## 1 Source of materials\n\n${synthesis}\n\n## 2 Experimental details\n\nDiffraction data were collected using ${x.diffractometer || "[instrument]"} with ${x.radiation || "[radiation]"} radiation${x.wavelength ? ` (lambda = ${x.wavelength} Å)` : ""}. The structure was solved and refined using the stated crystallographic software. Hydrogen atoms should be treated according to the actual refinement strategy and reported consistently with the CIF.\n\n## 3 Comment\n\n${comment}\n\nAcknowledgments: [Insert funding or delete this sentence.]\n\n## References\n\n${refs || defaultRefs}\n`;
+    }
+
+    function markdownToHtml(md) {
+      const escaped = md
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const lines = escaped.split("\n");
+      let html = "";
+      let inTable = false;
+      for (const line of lines) {
+        if (line.startsWith("# ")) {
+          html += `<h3>${line.slice(2)}</h3>`;
+        } else if (line.startsWith("## ")) {
+          html += `<h4>${line.slice(3)}</h4>`;
+        } else if (/^\|.+\|$/.test(line)) {
+          const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+          if (cells.every((c) => /^-+$/.test(c))) continue;
+          if (!inTable) {
+            html += "<table>";
+            inTable = true;
+          }
+          html += `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+        } else {
+          if (inTable) {
+            html += "</table>";
+            inTable = false;
+          }
+          if (line.trim()) html += `<p>${line}</p>`;
+        }
+      }
+      if (inTable) html += "</table>";
+      return html;
+    }
+
+    function buildChecks() {
+      const x = buildExtracted();
+      const alerts = parseCheckCif(state.checkText);
+      const checks = [];
+      if (!state.cifText) checks.push("FAIL: 未上传 CIF，不能生成可信晶体学摘要。");
+      if (!x.ccdc) checks.push("FAIL: 缺 CCDC 号，投稿前必须补齐。");
+      if (!x.formula) checks.push("WARN: CIF 未识别分子式字段。");
+      if (!x.spaceGroup) checks.push("WARN: CIF 未识别空间群字段。");
+      if (!x.rgt || !x.wr) checks.push("WARN: CIF 未识别 Rgt/wRref，需人工补齐。");
+      if (!x.crystalSize) checks.push("WARN: 缺晶体尺寸，Table 1 需补齐。");
+      if (!state.checkText) checks.push("WARN: 未上传 checkCIF 报告，无法判断 alert 风险。");
+      if (alerts.a > 0 || alerts.b > 0) checks.push(`FAIL: checkCIF 可能存在 A/B 级 alert：A=${alerts.a}, B=${alerts.b}。投稿前必须解释或修正。`);
+      if (alerts.c > 0 || alerts.g > 0) checks.push(`WARN: checkCIF 可能存在 C/G 级 alert：C=${alerts.c}, G=${alerts.g}。`);
+      if (!el("synthesis").value.trim()) checks.push("WARN: 缺合成路线。");
+      if (!el("commentSeed").value.trim()) checks.push("WARN: Comment 目前只有保守骨架，需用 Olex2/Mercury 补真实结构特征。");
+      if (checks.length === 0) checks.push("PASS: 基本字段完整。仍需人工核对 CIF、checkCIF、CCDC 与结构解释。");
+      if (alerts.snippets.length) {
+        checks.push("");
+        checks.push("checkCIF alert 摘要：");
+        checks.push(...alerts.snippets);
+      }
+      state.checks = checks;
+      return checks.join("\n");
+    }
+
+    function refreshStatus() {
+      const x = buildExtracted();
+      const alerts = parseCheckCif(state.checkText);
+      el("cifStatus").textContent = state.cifText ? "已读取 CIF" : "未读取 CIF";
+      el("cifStatus").className = state.cifText ? "ok" : "warn";
+      el("ccdcStatus").textContent = x.ccdc ? `CCDC ${x.ccdc}` : "缺 CCDC";
+      el("ccdcStatus").className = x.ccdc ? "ok" : "warn";
+      if (!state.checkText) {
+        el("alertStatus").textContent = "未读取 checkCIF";
+        el("alertStatus").className = "warn";
+      } else if (alerts.a || alerts.b) {
+        el("alertStatus").textContent = `A/B alert: ${alerts.a}/${alerts.b}`;
+        el("alertStatus").className = "bad";
+      } else {
+        el("alertStatus").textContent = `C/G alert: ${alerts.c}/${alerts.g}`;
+        el("alertStatus").className = alerts.c || alerts.g ? "warn" : "ok";
+      }
+    }
+
+    function generate() {
+      state.markdown = buildMarkdown();
+      el("paperPreview").innerHTML = markdownToHtml(state.markdown);
+      el("markdownPreview").textContent = state.markdown;
+      el("checksPreview").textContent = buildChecks();
+      refreshStatus();
+    }
+
+    function download(filename, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function wordHtml() {
+      const body = markdownToHtml(state.markdown || buildMarkdown());
+      return `<!doctype html><html><head><meta charset="utf-8"><title>Crystal short paper draft</title><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.45;}h3{font-size:16pt;}h4{font-size:13pt;margin-top:16pt;}table{width:100%;border-collapse:collapse;}td{border-top:1px solid #000;padding:5px;}tr:last-child td{border-bottom:1px solid #000;}</style></head><body>${body}</body></html>`;
+    }
+
+    async function readFileAsText(file) {
+      return await file.text();
+    }
+
+    el("cifFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      state.cifText = await readFileAsText(file);
+      state.data = parseCif(state.cifText);
+      const x = buildExtracted();
+      if (!el("title").value.trim() && x.formula) el("title").value = `The crystal structure of [compound name], ${x.formula}`;
+      if (!el("temperature").value.trim() && x.temp) el("temperature").value = x.temp;
+      generate();
+    });
+
+    el("checkFile").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      state.checkText = await readFileAsText(file);
+      generate();
+    });
+
+    ["ccdc", "temperature", "title", "authors", "affiliation", "synthesis", "commentSeed", "references", "journal"].forEach((id) => {
+      el(id).addEventListener("input", generate);
+    });
+
+    el("generateBtn").addEventListener("click", generate);
+    el("clearBtn").addEventListener("click", () => {
+      localStorage.removeItem("crystal-short-paper-draft");
+      location.reload();
+    });
+
+    el("downloadDocBtn").addEventListener("click", () => {
+      generate();
+      download("crystal-short-paper-draft.doc", wordHtml(), "application/msword;charset=utf-8");
+    });
+
+    el("downloadMdBtn").addEventListener("click", () => {
+      generate();
+      download("crystal-short-paper-draft.md", state.markdown, "text/markdown;charset=utf-8");
+    });
+
+    el("copyBtn").addEventListener("click", async () => {
+      generate();
+      await navigator.clipboard.writeText(state.markdown);
+      el("copyBtn").textContent = "已复制";
+      setTimeout(() => { el("copyBtn").textContent = "复制正文"; }, 1200);
+    });
+
+    document.querySelectorAll(".tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+        button.classList.add("active");
+        ["preview", "markdown", "checks"].forEach((name) => {
+          el(`${name}Panel`).classList.toggle("hidden", button.dataset.tab !== name);
+        });
+      });
+    });
+
+    generate();
+  </script>
+</body>
+</html>
