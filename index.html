@@ -303,6 +303,35 @@
           <option value="plain">通用晶体结构短文</option>
         </select>
 
+        <h2 style="font-size:16px;margin:22px 0 8px;">晶体合成路线设计助手</h2>
+        <p class="note" style="margin-top:0;">用于生成实验方案草案，不替代真实有机合成、晶体培养和安全审查。</p>
+
+        <label for="targetCompound">目标分子 / 配合物 / 盐 / 共晶</label>
+        <textarea id="targetCompound" placeholder="例如：含咪唑-磺酸骨架的盐；金属-有机配合物；药物共晶；已知母体化合物的衍生物。"></textarea>
+
+        <label for="reactionType">合成类型</label>
+        <select id="reactionType">
+          <option value="organic">有机小分子合成</option>
+          <option value="salt">成盐 / 离子晶体</option>
+          <option value="cocrystal">药物共晶 / 氢键共晶</option>
+          <option value="coordination">金属配合物 / MOF 前体</option>
+          <option value="solvothermal">水热 / 溶剂热晶体</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label for="availableMaterials">已有原料</label>
+            <textarea id="availableMaterials" placeholder="列出真实可购买或实验室已有原料。"></textarea>
+          </div>
+          <div>
+            <label for="crystalGoal">晶体目标</label>
+            <textarea id="crystalGoal" placeholder="如：单晶、块状、避免孪晶、适合 XRD、目标盐型或共晶化。"></textarea>
+          </div>
+        </div>
+
+        <label for="conditionLimits">实验限制 / 安全限制</label>
+        <textarea id="conditionLimits" placeholder="如：不用高压釜；温度不超过120 C；避免强酸强碱；只能用甲醇/乙醇/水/DMF等。"></textarea>
+
         <div class="buttons">
           <button id="generateBtn">生成草稿</button>
           <button id="clearBtn" class="secondary">清空</button>
@@ -317,6 +346,7 @@
         <div class="tabs">
           <button class="tab active" data-tab="preview">预览</button>
           <button class="tab" data-tab="markdown">Markdown</button>
+          <button class="tab" data-tab="synthesisPlan">合成助手</button>
           <button class="tab" data-tab="checks">检查</button>
         </div>
       </div>
@@ -336,6 +366,7 @@
         <div id="paperPreview" class="paper"></div>
       </div>
       <div id="markdownPanel" class="preview hidden"><pre id="markdownPreview"></pre></div>
+      <div id="synthesisPlanPanel" class="preview hidden"><pre id="synthesisPlanPreview"></pre></div>
       <div id="checksPanel" class="preview hidden"><pre id="checksPreview"></pre></div>
     </section>
   </main>
@@ -503,6 +534,86 @@
       return `# ${authors}\n\n## ${x.title}\n\n${affiliation}\n\nDOI: [to be assigned]\n\nReceived: [date]; accepted: [date]; published online: [date]\n\n## Abstract\n\n${x.formula || "[formula]"}, ${cell}\nCCDC no.: ${x.ccdc || "[CCDC number required]"}\n\nThe molecular structure is shown in the figure. Table 1 contains the crystallographic data. The atomic coordinates and displacement parameters should be supplied in the CIF file attached to the article.\n\n## Table 1: Data collection and handling\n\n| Item | Value |\n|---|---|\n${rows}\n\n## 1 Source of materials\n\n${synthesis}\n\n## 2 Experimental details\n\nDiffraction data were collected using ${x.diffractometer || "[instrument]"} with ${x.radiation || "[radiation]"} radiation${x.wavelength ? ` (lambda = ${x.wavelength} Å)` : ""}. The structure was solved and refined using the stated crystallographic software. Hydrogen atoms should be treated according to the actual refinement strategy and reported consistently with the CIF.\n\n## 3 Comment\n\n${comment}\n\nAcknowledgments: [Insert funding or delete this sentence.]\n\n## References\n\n${refs || defaultRefs}\n`;
     }
 
+    function buildSynthesisPlan() {
+      const target = el("targetCompound").value.trim() || "[请填写目标分子、配合物、盐或共晶]";
+      const type = el("reactionType").value;
+      const materials = el("availableMaterials").value.trim() || "[请列出真实可获得原料]";
+      const goal = el("crystalGoal").value.trim() || "获得适合单晶 X 射线衍射的单晶";
+      const limits = el("conditionLimits").value.trim() || "未填写限制；实际实验前必须补充安全、温度、溶剂和设备限制。";
+      const templates = {
+        organic: {
+          route: [
+            "1. 先确认目标骨架是否已有可购买前体或文献路线；不要从复杂终产物倒推到不可购买原料。",
+            "2. 以官能团互换、缩合、取代、偶联或环化为主线，拆成 1-3 个可验证步骤。",
+            "3. 每一步记录投料摩尔比、溶剂、温度、时间、纯化方式和产率；失败步骤不得省略。",
+            "4. 终产物先用 NMR/MS/IR 或元素分析确认，再进入结晶筛选。"
+          ],
+          matrix: [
+            ["慢挥发", "甲醇/乙醇/乙腈/乙酸乙酯", "室温，1-7 天", "适合溶解度中等的中性有机物"],
+            ["液液扩散", "良溶剂 DMF/DMSO/MeOH + 不良溶剂 Et2O/水/己烷", "静置，3-14 天", "优先小管筛选，减少油状析出"],
+            ["温度梯度", "热溶剂饱和后缓慢降温", "60 C 到室温", "适合高温溶解、低温析晶体系"]
+          ]
+        },
+        salt: {
+          route: [
+            "1. 判断目标分子是否有明确酸碱位点，优先选择 pKa 差异足够的酸/碱形成盐。",
+            "2. 用 1:1、1:2、2:1 摩尔比做小量筛选，避免只做单一比例。",
+            "3. 先确认成盐而不是简单混晶或游离态共存，可用 IR、PXRD、DSC 或单晶结构判断。",
+            "4. 记录母体、酸/碱、溶剂、水含量和晶体获得方式。"
+          ],
+          matrix: [
+            ["酸碱中和", "MeOH/EtOH/H2O/MeCN", "室温或 50-80 C", "适合离子盐和药物盐"],
+            ["反溶剂扩散", "DMF/MeOH + Et2O/乙酸乙酯", "3-10 天", "常用于长出块状单晶"],
+            ["水参与筛选", "MeOH-H2O 或 EtOH-H2O", "室温慢挥发", "注意水合物和溶剂化物"]
+          ]
+        },
+        cocrystal: {
+          route: [
+            "1. 选择具有互补氢键位点的 coformer，例如羧酸、酰胺、吡啶、咪唑、酚羟基等。",
+            "2. 设计 1:1、1:2、2:1 比例筛选，不要只凭一个比例判断失败。",
+            "3. 用研磨、溶剂辅助研磨、慢挥发和浆液法并行筛选。",
+            "4. 单晶获得前先用 PXRD 判断是否出现新晶相。"
+          ],
+          matrix: [
+            ["溶剂辅助研磨", "少量 MeOH/EtOH/MeCN", "10-30 分钟", "快速判断是否有新相"],
+            ["慢挥发", "EtOH/MeOH/MeCN/丙酮", "1-14 天", "适合后续单晶培养"],
+            ["浆液法", "低溶解度溶剂", "室温振荡 1-3 天", "有助于筛选热力学稳定晶相"]
+          ]
+        },
+        coordination: {
+          route: [
+            "1. 明确金属盐、配体齿数、配位位点和目标维度，先从简单金属盐和常见阴离子开始。",
+            "2. 设置金属:配体 = 1:1、1:2、2:1 的小量筛选。",
+            "3. 控制 pH、溶剂极性和抗衡阴离子；这些因素常决定晶体质量和结构类型。",
+            "4. 对含重金属或有毒金属体系必须先做安全评估和废液处理方案。"
+          ],
+          matrix: [
+            ["室温扩散", "MeOH/EtOH/H2O/DMF", "3-14 天", "适合初筛配位晶体"],
+            ["溶剂热", "DMF/H2O 或 DMF/EtOH", "80-120 C，12-72 h", "适合难结晶配合物"],
+            ["pH 梯度", "弱酸/弱碱缓慢调节", "室温或加热", "适合羧酸、吡啶、咪唑配体"]
+          ]
+        },
+        solvothermal: {
+          route: [
+            "1. 先确认反应釜耐压、溶剂沸点和温度上限，不要把文献条件机械照搬。",
+            "2. 固定总浓度后筛选温度、时间、溶剂比例和降温速率。",
+            "3. 每组反应只改 1-2 个关键变量，否则失败后无法判断原因。",
+            "4. 产物先做显微观察和 PXRD，再挑单晶测定。"
+          ],
+          matrix: [
+            ["低温水热", "H2O/EtOH", "80-100 C，24-72 h", "适合盐类和亲水配体"],
+            ["DMF 溶剂热", "DMF/H2O 或 DMF/EtOH", "100-120 C，24-72 h", "常见于配合物和框架材料"],
+            ["缓慢降温", "反应后 5-10 C/h 降温", "反应釜内完成", "有利于较大晶体形成"]
+          ]
+        }
+      };
+      const selected = templates[type];
+      const matrixRows = selected.matrix
+        .map((row, index) => `${index + 1}. ${row[0]} | 溶剂/体系：${row[1]} | 条件：${row[2]} | 备注：${row[3]}`)
+        .join("\n");
+      return `晶体合成路线设计助手\n\n目标：${target}\n\n已有原料：\n${materials}\n\n晶体目标：\n${goal}\n\n实验限制：\n${limits}\n\n一、路线设计草案\n${selected.route.join("\n")}\n\n二、第一轮结晶筛选矩阵\n${matrixRows}\n\n三、记录表字段\n样品编号；目标物批号；原料摩尔比；溶剂与体积；浓度；温度；时间；pH；结晶方法；晶体形态；是否可挑晶；PXRD/NMR/MS 结果；失败现象；下一轮调整。\n\n四、失败后调整原则\n- 油状析出：降低浓度，改用液液扩散或换弱极性反溶剂。\n- 只出粉末：降低过饱和速度，减少搅拌，改慢挥发或温度梯度。\n- 晶体太小：降低浓度，延长生长时间，减少成核点。\n- 孪晶或裂晶：降低降温速度，换溶剂体系，避免快速析晶。\n- 无晶体：确认产物纯度，再扩大溶剂、比例、温度和水含量筛选。\n\n五、硬性边界\n本助手只生成实验设计草案。真实投稿必须有可复现实验、真实 CIF、checkCIF、CCDC 号和人工结构解释。`;
+    }
+
     function markdownToHtml(md) {
       const escaped = md
         .replace(/&/g, "&amp;")
@@ -584,6 +695,7 @@
       state.markdown = buildMarkdown();
       el("paperPreview").innerHTML = markdownToHtml(state.markdown);
       el("markdownPreview").textContent = state.markdown;
+      el("synthesisPlanPreview").textContent = buildSynthesisPlan();
       el("checksPreview").textContent = buildChecks();
       refreshStatus();
     }
@@ -627,7 +739,7 @@
       generate();
     });
 
-    ["ccdc", "temperature", "title", "authors", "affiliation", "synthesis", "commentSeed", "references", "journal"].forEach((id) => {
+    ["ccdc", "temperature", "title", "authors", "affiliation", "synthesis", "commentSeed", "references", "journal", "targetCompound", "reactionType", "availableMaterials", "crystalGoal", "conditionLimits"].forEach((id) => {
       el(id).addEventListener("input", generate);
     });
 
@@ -658,7 +770,7 @@
       button.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
         button.classList.add("active");
-        ["preview", "markdown", "checks"].forEach((name) => {
+        ["preview", "markdown", "synthesisPlan", "checks"].forEach((name) => {
           el(`${name}Panel`).classList.toggle("hidden", button.dataset.tab !== name);
         });
       });
